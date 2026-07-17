@@ -1,0 +1,44 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "me.andreasmelone.legacyshadermod.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "BlockMixin"
+  ],
+  "client": [
+    "AbstractTextureAccessor",
+    "AbstractTextureMixin",
+    "BlockRendererMixin",
+    "ClockSpriteMixin",
+    "CompassSpriteMixin",
+    "EndermanEntityRendererMixin",
+    "EntityRenderDispatcherAccessor",
+    "EntityRendererMixin",
+    "GameRendererMixin",
+    "GLXMixin",
+    "LayeredTextureMixin",
+    "LivingEntityRendererAccessor",
+    "LivingEntityRendererMixin",
+    "MinecraftClientMixin",
+    "ModelPartMixin",
+    "NativeImageBackedTextureMixin",
+    "PlayerSkinTextureMixin",
+    "ResourceTextureMixin",
+    "SettingsScreenMixin",
+    "SpiderEntityRendererMixin",
+    "SpriteAccessor",
+    "SpriteAtlasTextureMixin",
+    "TessellatorAccessor",
+    "TessellatorMixin",
+    "TextureManagerMixin",
+    "TextureMixin",
+    "WorldRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "shadersmod",
+  "version": "${version}",
+  "name": "GLSL Shaders Mod",
+  "description": "Use custom GLSL shaders to render world.",
+  "authors": [
+    "karyonix",
+    "sonic ether",
+    "id_miner",
+    "daxnitro",
+    "AndreasMelone"
+  ],
+  "contact": {},
+  "license": "ARR",
+  "icon": "assets/legacyshadermod/icon.png",
+  "environment": "client",
+  "entrypoints": {
+  },
+  "mixins": [
+    "legacyshadermod.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.17",
+    "minecraft": "1.6.4"
+  }
+}
