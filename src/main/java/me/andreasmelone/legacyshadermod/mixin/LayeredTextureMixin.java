@@ -1,8 +1,8 @@
 package me.andreasmelone.legacyshadermod.mixin;
 
 import me.andreasmelone.legacyshadermod.client.ShadersTex;
-import net.minecraft.client.texture.LayeredTexture;
-import net.minecraft.resource.ResourceManager;
+import net.minecraft.src.LayeredTexture;
+import net.minecraft.src.ResourceManager;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -16,11 +16,11 @@ import java.util.List;
 public class LayeredTextureMixin {
     @Final
     @Shadow
-    public List locations;
+    public List layeredTextureNames;
 
-    @Inject(method = "load", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "loadTexture", at = @At("HEAD"), cancellable = true)
     private void onLoad(ResourceManager manager, CallbackInfo ci) {
-        ShadersTex.loadLayeredTexture((LayeredTexture) (Object) this, manager, this.locations);
+        ShadersTex.loadLayeredTexture((LayeredTexture) (Object) this, manager, this.layeredTextureNames);
         ci.cancel();
     }
 }

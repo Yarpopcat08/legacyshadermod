@@ -1,23 +1,23 @@
 package me.andreasmelone.legacyshadermod.mixin;
 
 import me.andreasmelone.legacyshadermod.client.Shaders;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.src.Minecraft;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(MinecraftClient.class)
+@Mixin(Minecraft.class)
 public class MinecraftClientMixin {
     @Inject(
-            method = "initializeGame",
+            method = "startGame",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/WorldRenderer;<init>(Lnet/minecraft/client/MinecraftClient;)V"
+                    target = "Lnet/minecraft/src/RenderGlobal;<init>(Lnet/minecraft/src/Minecraft;)V"
             )
     )
     private void onInit(CallbackInfo ci) {
-        Shaders.startup((MinecraftClient) (Object) this);
+        Shaders.startup((Minecraft) (Object) this);
     }
 
 //   @WrapOperation(

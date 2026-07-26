@@ -1,21 +1,21 @@
 package me.andreasmelone.legacyshadermod.mixin;
 
-import net.minecraft.client.render.entity.LivingEntityRenderer;
-import net.minecraft.client.render.entity.model.EntityModel;
+import net.minecraft.src.ModelBase;
+import net.minecraft.src.RendererLivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(LivingEntityRenderer.class)
+@Mixin(RendererLivingEntity.class)
 public interface LivingEntityRendererAccessor {
-    @Accessor("model")
-    EntityModel getModel();
+    @Accessor("mainModel")
+    ModelBase getModel();
 
-    @Accessor("model")
-    void setModel(EntityModel model);
+    @Accessor("mainModel")
+    void setModel(ModelBase model);
 
-    @Accessor("field_6504")
-    EntityModel getField_6504();
+    @Accessor("renderPassModel")
+    ModelBase getField_6504();
 
-    @Accessor("field_6504")
-    void setField_6504(EntityModel field_6504);
+    @Accessor("renderPassModel")
+    void setField_6504(ModelBase field_6504);
 }

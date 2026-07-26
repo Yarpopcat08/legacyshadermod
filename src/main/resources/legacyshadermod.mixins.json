@@ -4,14 +4,23 @@
   "package": "me.andreasmelone.legacyshadermod.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
-    "BlockMixin"
+    "BlockMixin",
+    "SpriteMixin",
+    "btw.BTWCompassSpriteMixin",
+    "btw.BTWGameRendererMixin",
+    "mcpatcher.MCPatcherResourceTextureMixin",
+    "mcpatcher.MCPatcherSpriteAtlasTextureMixin",
+    "mcpatcher.MCPatcherSpriteMixin",
+    "vanilla.VanillaClockSpriteMixin",
+    "vanilla.VanillaGameRendererMixin",
+    "vanilla.VanillaResourceTextureMixin",
+    "vanilla.VanillaSpriteAtlasTextureMixin",
+    "vanilla.VanillaSpriteMixin"
   ],
   "client": [
     "AbstractTextureAccessor",
     "AbstractTextureMixin",
     "BlockRendererMixin",
-    "ClockSpriteMixin",
-    "CompassSpriteMixin",
     "EndermanEntityRendererMixin",
     "EntityRenderDispatcherAccessor",
     "EntityRendererMixin",
@@ -24,7 +33,6 @@
     "ModelPartMixin",
     "NativeImageBackedTextureMixin",
     "PlayerSkinTextureMixin",
-    "ResourceTextureMixin",
     "SettingsScreenMixin",
     "SpiderEntityRendererMixin",
     "SpriteAccessor",
@@ -33,8 +41,13 @@
     "TessellatorMixin",
     "TextureManagerMixin",
     "TextureMixin",
-    "WorldRendererMixin"
+    "WorldRendererMixin",
+    "btw.BTWClockSpriteMixin",
+    "btw.BTWMinecraftMixin",
+    "vanilla.VanillaCompassSpriteMixin",
+    "vanilla.VanillaInGameHudMixin"
   ],
+  "plugin": "me.andreasmelone.legacyshadermod.ShaderModMixinPlugin",
   "injectors": {
     "defaultRequire": 1
   },

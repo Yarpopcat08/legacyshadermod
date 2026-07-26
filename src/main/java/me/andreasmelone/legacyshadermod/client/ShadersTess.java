@@ -1,10 +1,10 @@
 package me.andreasmelone.legacyshadermod.client;
 
-import com.mojang.blaze3d.platform.GLX;
 import me.andreasmelone.legacyshadermod.mixin.TessellatorAccessor;
 import me.andreasmelone.legacyshadermod.mixinif.IShaderTessellator;
 import me.andreasmelone.legacyshadermod.transform.SMCLog;
-import net.minecraft.client.render.Tessellator;
+import net.minecraft.src.OpenGlHelper;
+import net.minecraft.src.Tessellator;
 import org.lwjgl.opengl.ARBVertexShader;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
@@ -74,11 +74,11 @@ public class ShadersTess {
                 }
 
                 if (((TessellatorAccessor) tess).hasLight()) {
-                    GLX.gl13ClientActiveTexture(GLX.lightmapTextureUnit);
+                    OpenGlHelper.setClientActiveTexture(OpenGlHelper.lightmapTexUnit);
                     ((Buffer) ((TessellatorAccessor) tess).getBufferShort()).position(12);
                     GL11.glTexCoordPointer(2, 72, ((TessellatorAccessor) tess).getBufferShort());
                     GL11.glEnableClientState(GL11.GL_TEXTURE_COORD_ARRAY);
-                    GLX.gl13ClientActiveTexture(GLX.textureUnit);
+                    OpenGlHelper.setClientActiveTexture(OpenGlHelper.defaultTexUnit);
                 }
 
                 if (((TessellatorAccessor) tess).hasColor()) {
@@ -107,9 +107,9 @@ public class ShadersTess {
             }
 
             if (((TessellatorAccessor) tess).hasLight()) {
-                GLX.gl13ClientActiveTexture(GLX.lightmapTextureUnit);
+                OpenGlHelper.setClientActiveTexture(OpenGlHelper.lightmapTexUnit);
                 GL11.glDisableClientState(GL11.GL_TEXTURE_COORD_ARRAY);
-                GLX.gl13ClientActiveTexture(GLX.textureUnit);
+                OpenGlHelper.setClientActiveTexture(OpenGlHelper.defaultTexUnit);
             }
 
             if (((TessellatorAccessor) tess).hasColor()) {
@@ -204,7 +204,7 @@ public class ShadersTess {
         if (rbi >= ((TessellatorAccessor) tess).getBufferCapacity() - 72) {
             if (((TessellatorAccessor) tess).getBufferCapacity() >= 0xFFFFFF + 1) {
                 if (((TessellatorAccessor) tess).getVertexCount() % 4 == 0) {
-                    tess.end();
+                    tess.draw();
                     ((TessellatorAccessor) tess).setTessellating(true);
                 }
             } else if (((TessellatorAccessor) tess).getBufferCapacity() > 0) {

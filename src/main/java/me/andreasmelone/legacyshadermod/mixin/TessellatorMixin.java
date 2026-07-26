@@ -2,7 +2,7 @@ package me.andreasmelone.legacyshadermod.mixin;
 
 import me.andreasmelone.legacyshadermod.client.ShadersTess;
 import me.andreasmelone.legacyshadermod.mixinif.IShaderTessellator;
-import net.minecraft.client.render.Tessellator;
+import net.minecraft.src.Tessellator;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -14,10 +14,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(Tessellator.class)
 public abstract class TessellatorMixin implements IShaderTessellator {
     @Shadow
-    private boolean hasNormal;
+    private boolean hasNormals;
 
     @Shadow
-    public abstract void offset(double x, double y, double z);
+    public abstract void setTranslation(double x, double y, double z);
 
     @Unique
     private ShadersTess shadersTess;
@@ -37,20 +37,20 @@ public abstract class TessellatorMixin implements IShaderTessellator {
         this.shadersTess = new ShadersTess();
     }
 
-    @Inject(method = "end", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "draw", at = @At("HEAD"), cancellable = true)
     private void onEnd(CallbackInfoReturnable<Integer> cir) {
         cir.setReturnValue(ShadersTess.draw((Tessellator) (Object) this));
     }
 
-    @Inject(method = "vertex(DDD)V", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "addVertex(DDD)V", at = @At("HEAD"), cancellable = true)
     private void onVertex(double x, double y, double z, CallbackInfo ci) {
         ShadersTess.addVertex((Tessellator) (Object) this, x, y, z);
         ci.cancel();
     }
 
-    @Inject(method = "normal", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "setNormal", at = @At("HEAD"), cancellable = true)
     private void onNormal(float x, float y, float z, CallbackInfo ci) {
-        this.hasNormal = true;
+        this.hasNormals = true;
         this.shadersTess.normalX = x;
         this.shadersTess.normalY = y;
         this.shadersTess.normalZ = z;

@@ -1,14 +1,20 @@
 package me.andreasmelone.legacyshadermod.mixin;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import me.andreasmelone.legacyshadermod.client.MultiTexID;
 import me.andreasmelone.legacyshadermod.client.ShadersTex;
 import me.andreasmelone.legacyshadermod.mixinif.IShaderTexture;
-import net.minecraft.client.texture.AbstractTexture;
+import net.minecraft.src.AbstractTexture;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
 
 @Mixin(AbstractTexture.class)
 public abstract class AbstractTextureMixin implements IShaderTexture {
+    @Shadow
+    public int glTextureId;
     @Unique
     public MultiTexID multiTex;
 

@@ -1,45 +1,45 @@
 package me.andreasmelone.legacyshadermod.mixin;
 
-import net.minecraft.client.resource.AnimationMetadata;
-import net.minecraft.client.texture.Sprite;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 import java.util.List;
+import net.minecraft.src.AnimationMetadataSection;
+import net.minecraft.src.TextureAtlasSprite;
 
-@Mixin(Sprite.class)
+@Mixin(TextureAtlasSprite.class)
 public interface SpriteAccessor {
-    @Accessor("name")
+    @Accessor("iconName")
     String shadermod$getName();
 
-    @Accessor("frames")
+    @Accessor("framesTextureData")
     List shadermod$getFrames();
 
-    @Accessor("frames")
+    @Accessor("framesTextureData")
     void shadermod$setFrames(List frames);
 
-    @Accessor("meta")
-    AnimationMetadata shadermod$getMeta();
+    @Accessor("animationMetadata")
+    AnimationMetadataSection shadermod$getMeta();
 
-    @Accessor("meta")
-    void shadermod$setMeta(AnimationMetadata meta);
+    @Accessor("animationMetadata")
+    void shadermod$setMeta(AnimationMetadataSection meta);
 
-    @Accessor("rotation")
+    @Accessor("rotated")
     boolean shadermod$getRotation();
 
-    @Accessor("rotation")
+    @Accessor("rotated")
     void shadermod$setRotation(boolean rotation);
 
-    @Accessor("x")
+    @Accessor("originX")
     int shadermod$getX();
 
-    @Accessor("x")
+    @Accessor("originX")
     void shadermod$setX(int x);
 
-    @Accessor("y")
+    @Accessor("originY")
     int shadermod$getY();
 
-    @Accessor("y")
+    @Accessor("originY")
     void shadermod$setY(int y);
 
     @Accessor("width")
@@ -54,39 +54,39 @@ public interface SpriteAccessor {
     @Accessor("height")
     void shadermod$setHeight(int height);
 
-    @Accessor("uMin")
+    @Accessor("minU")
     float shadermod$getUMin();
 
-    @Accessor("uMin")
+    @Accessor("minU")
     void shadermod$setUMin(float uMin);
 
-    @Accessor("uMax")
+    @Accessor("maxU")
     float shadermod$getUMax();
 
-    @Accessor("uMax")
+    @Accessor("maxU")
     void shadermod$setUMax(float uMax);
 
-    @Accessor("vMin")
+    @Accessor("minV")
     float shadermod$getVMin();
 
-    @Accessor("vMin")
+    @Accessor("minV")
     void shadermod$setVMin(float vMin);
 
-    @Accessor("vMax")
+    @Accessor("maxV")
     float shadermod$getVMax();
 
-    @Accessor("vMax")
+    @Accessor("maxV")
     void shadermod$setVMax(float vMax);
 
-    @Accessor("frameIndex")
+    @Accessor("frameCounter")
     int shadermod$getFrameIndex();
 
-    @Accessor("frameIndex")
+    @Accessor("frameCounter")
     void shadermod$setFrameIndex(int frameIndex);
 
-    @Accessor("frameTicks")
+    @Accessor("tickCounter")
     int shadermod$getFrameTicks();
 
-    @Accessor("frameTicks")
+    @Accessor("tickCounter")
     void shadermod$setFrameTicks(int frameTicks);
 }

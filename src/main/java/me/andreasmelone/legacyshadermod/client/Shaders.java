@@ -5,24 +5,24 @@ import me.andreasmelone.legacyshadermod.mixin.LivingEntityRendererAccessor;
 import me.andreasmelone.legacyshadermod.mixinif.IModelPart;
 import me.andreasmelone.legacyshadermod.mixinif.IShaderTexture;
 import me.andreasmelone.legacyshadermod.transform.SMCLog;
-import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
-import net.minecraft.client.BlockRenderer;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.GameOptions;
-import net.minecraft.client.render.DiffuseLighting;
-import net.minecraft.client.render.GameRenderer;
-import net.minecraft.client.render.Tessellator;
-import net.minecraft.client.render.entity.EntityRenderDispatcher;
-import net.minecraft.client.render.entity.LivingEntityRenderer;
-import net.minecraft.client.render.entity.model.EntityModel;
-import net.minecraft.client.render.model.ModelPart;
-import net.minecraft.client.texture.Texture;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.src.Block;
+import net.minecraft.src.EntityLivingBase;
+import net.minecraft.src.EntityRenderer;
+import net.minecraft.src.GameSettings;
+import net.minecraft.src.Item;
+import net.minecraft.src.ItemBlock;
+import net.minecraft.src.ItemStack;
+import net.minecraft.src.Material;
+import net.minecraft.src.Minecraft;
+import net.minecraft.src.ModelBase;
+import net.minecraft.src.ModelRenderer;
+import net.minecraft.src.RenderBlocks;
+import net.minecraft.src.RenderHelper;
+import net.minecraft.src.RenderManager;
+import net.minecraft.src.RendererLivingEntity;
+import net.minecraft.src.Tessellator;
+import net.minecraft.src.TextureObject;
+import net.minecraft.src.Vec3;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.*;
 import org.lwjgl.util.glu.GLU;
@@ -42,7 +42,7 @@ public class Shaders {
     public static final String versionString = "2.2.3";
     public static final int versionNumber = 131587;
     public static final int buildNumber = 38;
-    private static MinecraftClient mc;
+    private static Minecraft mc;
     public static boolean isInitialized = false;
     private static boolean notFirstInit = false;
     public static ContextCapabilities capabilities;
@@ -214,7 +214,7 @@ public class Shaders {
     private static int activeCompositeMipmapSetting = 0;
     public static Properties loadedShaders = null;
     public static Properties shadersConfig = null;
-    public static Texture defaultTexture = null;
+    public static TextureObject defaultTexture = null;
     public static boolean normalMapEnabled = false;
     public static boolean[] shadowHardwareFilteringEnabled = new boolean[2];
     public static boolean[] shadowMipmapEnabled = new boolean[2];
@@ -249,9 +249,9 @@ public class Shaders {
     static String packNameDefault = "(internal)";
     static String shaderpacksdirname = "shaderpacks";
     static String optionsfilename = "optionsshaders.txt";
-    static File shadersdir = new File(MinecraftClient.getInstance().runDirectory, "shaders");
-    static File shaderpacksdir = new File(MinecraftClient.getInstance().runDirectory, shaderpacksdirname);
-    static File configFile = new File(MinecraftClient.getInstance().runDirectory, optionsfilename);
+    static File shadersdir = new File(Minecraft.getMinecraft().mcDataDir, "shaders");
+    static File shaderpacksdir = new File(Minecraft.getMinecraft().mcDataDir, shaderpacksdirname);
+    static File configFile = new File(Minecraft.getMinecraft().mcDataDir, optionsfilename);
     public static final boolean enableShadersOption = true;
     private static final boolean enableShadersDebug = true;
     public static float blockLightLevel05 = 0.5F;
@@ -422,6 +422,10 @@ public class Shaders {
         shadersConfig.setProperty("shaderPack", par1name);
     }
 
+    public static String getShaderPack() {
+        return currentshadername;
+    }
+
     public static void loadShaderPack() {
         if (shaderPack != null) {
             shaderPack.close();
@@ -536,7 +540,7 @@ public class Shaders {
 
     private static String printChatAndLogError(String str) {
         SMCLog.severe(str);
-        mc.inGameHud.getChatHud().addMessage(str);
+        mc.ingameGUI.getChatGUI().printChatMessage(str);
         return str;
     }
 
@@ -553,7 +557,7 @@ public class Shaders {
         SMCLog.info(sb.toString());
     }
 
-    public static void startup(MinecraftClient mc) {
+    public static void startup(Minecraft mc) {
         Shaders.mc = mc;
         SMCLog.info("ShadersMod version 2.2.3");
         loadConfig();
@@ -577,7 +581,7 @@ public class Shaders {
 
     public static void init() {
         if (!isInitialized) {
-            mc = MinecraftClient.getInstance();
+            mc = Minecraft.getMinecraft();
             checkGLError("Shaders.init pre");
             capabilities = GLContext.getCapabilities();
             SMCLog.info("OpenGL Version : %s", GL11.glGetString(7938));
@@ -792,7 +796,7 @@ public class Shaders {
 
             resetDisplayList();
             if (notFirstInit) {
-                mc.inGameHud.getChatHud().addMessage("Shaders initialized.");
+                mc.ingameGUI.getChatGUI().printChatMessage("Shaders initialized.");
             }
 
             checkGLError("Shaders.init");
@@ -803,8 +807,8 @@ public class Shaders {
         numberResetDisplayList++;
         SMCLog.info("Reset model renderers");
         if (useMidTexCoordAttrib || useMultiTexCoord3Attrib || useTangentAttrib) {
-            for (Object ren : ((EntityRenderDispatcherAccessor) EntityRenderDispatcher.INSTANCE).getRenderers().values()) {
-                if (ren instanceof LivingEntityRenderer) {
+            for (Object ren : ((EntityRenderDispatcherAccessor) RenderManager.instance).getRenderers().values()) {
+                if (ren instanceof RendererLivingEntity) {
                     LivingEntityRendererAccessor rle = (LivingEntityRendererAccessor) ren;
                     resetDisplayListModel(rle.getModel());
                     resetDisplayListModel(rle.getField_6504());
@@ -813,27 +817,27 @@ public class Shaders {
         }
 
         SMCLog.info("Reset world renderers");
-        mc.worldRenderer.reload();
+        mc.renderGlobal.loadRenderers();
         SMCLog.info(".");
     }
 
-    public static void resetDisplayListModel(EntityModel mbase) {
+    public static void resetDisplayListModel(ModelBase mbase) {
         if (mbase != null) {
-            for (Object obj : mbase.parts) {
-                if (obj instanceof ModelPart) {
-                    resetDisplayListModelRenderer((ModelPart) obj);
+            for (Object obj : mbase.boxList) {
+                if (obj instanceof ModelRenderer) {
+                    resetDisplayListModelRenderer((ModelRenderer) obj);
                 }
             }
         }
     }
 
-    public static void resetDisplayListModelRenderer(ModelPart mrr) {
+    public static void resetDisplayListModelRenderer(ModelRenderer mrr) {
         ((IModelPart) mrr).shadermod$resetDisplayList();
-        if (mrr.modelList != null) {
+        if (mrr.childModels != null) {
             int i = 0;
 
-            for (int n = mrr.modelList.size(); i < n; i++) {
-                resetDisplayListModelRenderer((ModelPart) mrr.modelList.get(i));
+            for (int n = mrr.childModels.size(); i < n; i++) {
+                resetDisplayListModelRenderer((ModelRenderer) mrr.childModels.get(i));
             }
         }
     }
@@ -986,7 +990,7 @@ public class Shaders {
             String line;
             try {
                 while ((line = reader.readLine()) != null) {
-                    fragCode.append(line).append('\n');
+                    fragCode.append(line.replace("texture2DLod", "texture2D")).append('\n');
                     if (!line.matches("#version .*")) {
                         if (line.matches("uniform [ _a-zA-Z0-9]+ shadow;.*")) {
                             if (usedShadowDepthBuffers < 1) {
@@ -1374,20 +1378,20 @@ public class Shaders {
                         setProgramUniform1i("noisetex", 15);
                 }
 
-                ItemStack stack = mc.field_3805.inventory.getMainHandStack();
+                ItemStack stack = mc.thePlayer.inventory.getCurrentItem();
                 Item item = stack != null ? stack.getItem() : null;
                 int itemID;
                 int blockID;
                 if (item != null) {
-                    itemID = item.id;
-                    blockID = item instanceof BlockItem ? ((BlockItem) item).method_3464() : -1;
+                    itemID = item.itemID;
+                    blockID = item instanceof ItemBlock ? ((ItemBlock) item).getBlockID() : -1;
                 } else {
                     itemID = -1;
                     blockID = -1;
                 }
 
                 setProgramUniform1i("heldItemId", itemID);
-                setProgramUniform1i("heldBlockLightValue", blockID != -1 ? Block.field_496[blockID] : 0);
+                setProgramUniform1i("heldBlockLightValue", blockID != -1 ? Block.lightValue[blockID] : 0);
                 setProgramUniform1i("fogMode", fogEnabled ? fogMode : 0);
                 setProgramUniform3f("fogColor", fogColorR, fogColorG, fogColorB);
                 setProgramUniform3f("skyColor", skyColorR, skyColorG, skyColorB);
@@ -1401,7 +1405,7 @@ public class Shaders {
                 setProgramUniform1f("viewWidth", renderWidth);
                 setProgramUniform1f("viewHeight", renderHeight);
                 setProgramUniform1f("near", 0.05F);
-                setProgramUniform1f("far", 256 >> mc.options.renderDistance);
+                setProgramUniform1f("far", 256 >> mc.gameSettings.renderDistance);
                 setProgramUniform3f("sunPosition", sunPosition[0], sunPosition[1], sunPosition[2]);
                 setProgramUniform3f("moonPosition", moonPosition[0], moonPosition[1], moonPosition[2]);
                 setProgramUniform3f("upPosition", upPosition[0], upPosition[1], upPosition[2]);
@@ -1427,7 +1431,7 @@ public class Shaders {
                 setProgramUniform2i("terrainTextureSize", terrainTextureSize[0], terrainTextureSize[1]);
                 setProgramUniform1i("terrainIconSize", terrainIconSize);
                 setProgramUniform1i("isEyeInWater", isEyeInWater);
-                setProgramUniform1i("hideGUI", mc.options.hudHidden ? 1 : 0);
+                setProgramUniform1i("hideGUI", mc.gameSettings.hideGUI ? 1 : 0);
                 setProgramUniform1f("centerDepthSmooth", centerDepthSmooth);
                 setProgramUniform2i("atlasSize", atlasSizeX, atlasSizeY);
                 checkGLError("useProgram ", programNames[program]);
@@ -1624,8 +1628,8 @@ public class Shaders {
     }
 
     private static void resize() {
-        renderDisplayWidth = mc.width;
-        renderDisplayHeight = mc.height;
+        renderDisplayWidth = mc.displayWidth;
+        renderDisplayHeight = mc.displayHeight;
         renderWidth = Math.round(renderDisplayWidth * configRenderResMul);
         renderHeight = Math.round(renderDisplayHeight * configRenderResMul);
         setupFrameBuffer();
@@ -1761,16 +1765,16 @@ public class Shaders {
         }
     }
 
-    public static void beginRender(MinecraftClient minecraft, float f, long l) {
+    public static void beginRender(Minecraft minecraft, float f, long l) {
         if (!isShadowPass) {
             checkGLError("pre beginRender");
             mc = minecraft;
-            mc.profiler.push("init");
+            mc.mcProfiler.startSection("init");
             if (!isInitialized) {
                 init();
             }
 
-            if (mc.width != renderDisplayWidth || mc.height != renderDisplayHeight) {
+            if (mc.displayWidth != renderDisplayWidth || mc.displayHeight != renderDisplayHeight) {
                 resize();
             }
 
@@ -1778,14 +1782,14 @@ public class Shaders {
                 resizeShadow();
             }
 
-            worldTime = mc.world.getTimeOfDay();
+            worldTime = mc.theWorld.getWorldTime();
             diffWorldTime = (worldTime - lastWorldTime) % 24000L;
             if (diffWorldTime < 0L) {
                 diffWorldTime += 24000L;
             }
 
             lastWorldTime = worldTime;
-            moonPhase = mc.world.getMoonPhase();
+            moonPhase = mc.theWorld.getMoonPhase();
             systemTime = System.currentTimeMillis();
             if (lastSystemTime == 0L) {
                 lastSystemTime = systemTime;
@@ -1795,22 +1799,22 @@ public class Shaders {
             lastSystemTime = systemTime;
             frameTimeCounter = frameTimeCounter + (float) diffSystemTime * 0.001F;
             frameTimeCounter %= 100000.0F;
-            rainStrength = minecraft.world.getRainGradient(f);
+            rainStrength = minecraft.theWorld.getRainStrength(f);
             float fadeScalar = (float) diffSystemTime * 0.01F;
             float temp1 = (float) Math.exp(Math.log(0.5) * fadeScalar / (wetness < rainStrength ? drynessHalfLife : wetnessHalfLife));
             wetness = wetness * temp1 + rainStrength * (1.0F - temp1);
-            LivingEntity eye = mc.field_6279;
-            eyePosY = (float) eye.y * f + (float) eye.prevTickY * (1.0F - f);
-            eyeBrightness = eye.getLightmapCoordinates(f);
+            EntityLivingBase eye = mc.renderViewEntity;
+            eyePosY = (float) eye.posY * f + (float) eye.lastTickPosY * (1.0F - f);
+            eyeBrightness = eye.getBrightnessForRender(f);
             temp1 = (float) diffSystemTime * 0.01F;
             float temp2 = (float) Math.exp(Math.log(0.5) * temp1 / eyeBrightnessHalflife);
             eyeBrightnessFadeX = eyeBrightnessFadeX * temp2 + (eyeBrightness & 65535) * (1.0F - temp2);
             eyeBrightnessFadeY = eyeBrightnessFadeY * temp2 + (eyeBrightness >> 16) * (1.0F - temp2);
-            isEyeInWater = mc.options.perspective == 0 && !mc.field_6279.isSleeping() && mc.field_3805.isSubmergedIn(Material.WATER) ? 1 : 0;
-            Vec3d skyColorV = mc.world.method_3631(mc.field_6279, f);
-            skyColorR = (float) skyColorV.x;
-            skyColorG = (float) skyColorV.y;
-            skyColorB = (float) skyColorV.z;
+            isEyeInWater = mc.gameSettings.thirdPersonView == 0 && !mc.renderViewEntity.isPlayerSleeping() && mc.thePlayer.isInsideOfMaterial(Material.water) ? 1 : 0;
+            Vec3 skyColorV = mc.theWorld.getSkyColor(mc.renderViewEntity, f);
+            skyColorR = (float) skyColorV.xCoord;
+            skyColorG = (float) skyColorV.yCoord;
+            skyColorB = (float) skyColorV.zCoord;
             isRenderingWorld = true;
             isCompositeRendered = false;
             isHandRendered = false;
@@ -1867,21 +1871,21 @@ public class Shaders {
             previousModelView.put(modelView);
             ((Buffer) previousModelView).position(0);
             ((Buffer) modelView).position(0);
-            GameRenderer.anaglyphFilter = 0;
+            EntityRenderer.anaglyphField = 0;
             if (usedShadowDepthBuffers > 0 && --shadowPassCounter <= 0) {
-                mc.profiler.swap("shadow pass");
-                preShadowPassThirdPersonView = mc.options.perspective;
-                boolean preShadowPassAdvancedOpengl = mc.options.advancedOpengl;
-                mc.options.advancedOpengl = false;
+                mc.mcProfiler.endStartSection("shadow pass");
+                preShadowPassThirdPersonView = mc.gameSettings.thirdPersonView;
+                boolean preShadowPassAdvancedOpengl = mc.gameSettings.advancedOpengl;
+                mc.gameSettings.advancedOpengl = false;
                 isShadowPass = true;
                 shadowPassCounter = shadowPassInterval;
                 EXTFramebufferObject.glBindFramebufferEXT(36160, sfb);
                 GL20.glDrawBuffers(programsDrawBuffers[21]);
                 useProgram(21);
-                mc.gameRenderer.renderWorld(f, l);
+                mc.entityRenderer.renderWorld(f, l);
                 isShadowPass = false;
-                mc.options.advancedOpengl = preShadowPassAdvancedOpengl;
-                mc.options.perspective = preShadowPassThirdPersonView;
+                mc.gameSettings.advancedOpengl = preShadowPassAdvancedOpengl;
+                mc.gameSettings.thirdPersonView = preShadowPassThirdPersonView;
                 if (hasGlGenMipmap) {
                     if (usedShadowDepthBuffers >= 1) {
                         if (shadowMipmapEnabled[0]) {
@@ -1917,7 +1921,7 @@ public class Shaders {
                 }
             }
 
-            mc.profiler.pop();
+            mc.mcProfiler.endSection();
             EXTFramebufferObject.glBindFramebufferEXT(36160, dfb);
             GL11.glViewport(0, 0, renderWidth, renderHeight);
             activeDrawBuffers = null;
@@ -1991,10 +1995,10 @@ public class Shaders {
     }
 
     public static void setCamera(float f) {
-        LivingEntity viewEntity = mc.field_6279;
-        double x = viewEntity.prevTickX + (viewEntity.x - viewEntity.prevTickX) * f;
-        double y = viewEntity.prevTickY + (viewEntity.y - viewEntity.prevTickY) * f;
-        double z = viewEntity.prevTickZ + (viewEntity.z - viewEntity.prevTickZ) * f;
+        EntityLivingBase viewEntity = mc.renderViewEntity;
+        double x = viewEntity.lastTickPosX + (viewEntity.posX - viewEntity.lastTickPosX) * f;
+        double y = viewEntity.lastTickPosY + (viewEntity.posY - viewEntity.lastTickPosY) * f;
+        double z = viewEntity.lastTickPosZ + (viewEntity.posZ - viewEntity.lastTickPosZ) * f;
         cameraPosition[0] = x;
         cameraPosition[1] = y;
         cameraPosition[2] = z;
@@ -2020,7 +2024,7 @@ public class Shaders {
             GL11.glLoadIdentity();
             GL11.glTranslatef(0.0F, 0.0F, -100.0F);
             GL11.glRotatef(90.0F, 1.0F, 0.0F, 0.0F);
-            float celestialAngle = mc.world.getSkyAngle(f);
+            float celestialAngle = mc.theWorld.getCelestialAngle(f);
             sunAngle = celestialAngle < 0.75F ? celestialAngle + 0.25F : celestialAngle - 0.75F;
             float angle = celestialAngle * -360.0F;
             float angleInterval = shadowAngleInterval > 0.0F ? angle % shadowAngleInterval - shadowAngleInterval * 0.5F : 0.0F;
@@ -2058,7 +2062,7 @@ public class Shaders {
             setProgramUniformMatrix4ARB("shadowProjectionInverse", false, shadowProjectionInverse);
             setProgramUniformMatrix4ARB("shadowModelView", false, shadowModelView);
             setProgramUniformMatrix4ARB("shadowModelViewInverse", false, shadowModelViewInverse);
-            mc.options.perspective = 1;
+            mc.gameSettings.thirdPersonView = 1;
             checkGLError("setCamera");
         } else {
             checkGLError("setCamera");
@@ -2265,9 +2269,9 @@ public class Shaders {
 
             isRenderingDfb = false;
             EXTFramebufferObject.glBindFramebufferEXT(36160, 0);
-            GL11.glViewport(0, 0, mc.width, mc.height);
-            if (GameRenderer.anaglyphEnabled) {
-                boolean maskR = GameRenderer.anaglyphFilter != 0;
+            GL11.glViewport(0, 0, mc.displayWidth, mc.displayHeight);
+            if (EntityRenderer.anaglyphEnable) {
+                boolean maskR = EntityRenderer.anaglyphField != 0;
                 GL11.glColorMask(maskR, !maskR, !maskR, true);
             }
 
@@ -2301,7 +2305,7 @@ public class Shaders {
             GL11.glMatrixMode(5888);
             GL11.glPopMatrix();
             useProgram(0);
-            DiffuseLighting.enableNormally();
+            RenderHelper.enableStandardItemLighting();
         }
     }
 
@@ -2329,56 +2333,56 @@ public class Shaders {
         pushEntity(-2, 0);
     }
 
-    public static void setSkyColor(Vec3d v3color) {
-        skyColorR = (float) v3color.x;
-        skyColorG = (float) v3color.y;
-        skyColorB = (float) v3color.z;
+    public static void setSkyColor(Vec3 v3color) {
+        skyColorR = (float) v3color.xCoord;
+        skyColorG = (float) v3color.yCoord;
+        skyColorB = (float) v3color.zCoord;
         setProgramUniform3f("skyColor", skyColorR, skyColorG, skyColorB);
     }
 
     public static void drawHorizon() {
-        Tessellator tess = Tessellator.INSTANCE;
-        float farDistance = 0xFF >> mc.options.renderDistance;
+        Tessellator tess = Tessellator.instance;
+        float farDistance = 0xFF >> mc.gameSettings.renderDistance;
         double xzq = farDistance * 0.9238;
         double xzp = farDistance * 0.3826;
         double xzn = -xzp;
         double xzm = -xzq;
         double top = 16.0;
         double bot = -cameraPosition[1];
-        tess.begin();
-        tess.vertex(xzn, bot, xzm);
-        tess.vertex(xzn, top, xzm);
-        tess.vertex(xzm, top, xzn);
-        tess.vertex(xzm, bot, xzn);
-        tess.vertex(xzm, bot, xzn);
-        tess.vertex(xzm, top, xzn);
-        tess.vertex(xzm, top, xzp);
-        tess.vertex(xzm, bot, xzp);
-        tess.vertex(xzm, bot, xzp);
-        tess.vertex(xzm, top, xzp);
-        tess.vertex(xzn, top, xzp);
-        tess.vertex(xzn, bot, xzp);
-        tess.vertex(xzn, bot, xzp);
-        tess.vertex(xzn, top, xzp);
-        tess.vertex(xzp, top, xzq);
-        tess.vertex(xzp, bot, xzq);
-        tess.vertex(xzp, bot, xzq);
-        tess.vertex(xzp, top, xzq);
-        tess.vertex(xzq, top, xzp);
-        tess.vertex(xzq, bot, xzp);
-        tess.vertex(xzq, bot, xzp);
-        tess.vertex(xzq, top, xzp);
-        tess.vertex(xzq, top, xzn);
-        tess.vertex(xzq, bot, xzn);
-        tess.vertex(xzq, bot, xzn);
-        tess.vertex(xzq, top, xzn);
-        tess.vertex(xzp, top, xzm);
-        tess.vertex(xzp, bot, xzm);
-        tess.vertex(xzp, bot, xzm);
-        tess.vertex(xzp, top, xzm);
-        tess.vertex(xzn, top, xzm);
-        tess.vertex(xzn, bot, xzm);
-        tess.end();
+        tess.startDrawingQuads();
+        tess.addVertex(xzn, bot, xzm);
+        tess.addVertex(xzn, top, xzm);
+        tess.addVertex(xzm, top, xzn);
+        tess.addVertex(xzm, bot, xzn);
+        tess.addVertex(xzm, bot, xzn);
+        tess.addVertex(xzm, top, xzn);
+        tess.addVertex(xzm, top, xzp);
+        tess.addVertex(xzm, bot, xzp);
+        tess.addVertex(xzm, bot, xzp);
+        tess.addVertex(xzm, top, xzp);
+        tess.addVertex(xzn, top, xzp);
+        tess.addVertex(xzn, bot, xzp);
+        tess.addVertex(xzn, bot, xzp);
+        tess.addVertex(xzn, top, xzp);
+        tess.addVertex(xzp, top, xzq);
+        tess.addVertex(xzp, bot, xzq);
+        tess.addVertex(xzp, bot, xzq);
+        tess.addVertex(xzp, top, xzq);
+        tess.addVertex(xzq, top, xzp);
+        tess.addVertex(xzq, bot, xzp);
+        tess.addVertex(xzq, bot, xzp);
+        tess.addVertex(xzq, top, xzp);
+        tess.addVertex(xzq, top, xzn);
+        tess.addVertex(xzq, bot, xzn);
+        tess.addVertex(xzq, bot, xzn);
+        tess.addVertex(xzq, top, xzn);
+        tess.addVertex(xzp, top, xzm);
+        tess.addVertex(xzp, bot, xzm);
+        tess.addVertex(xzp, bot, xzm);
+        tess.addVertex(xzp, top, xzm);
+        tess.addVertex(xzn, top, xzm);
+        tess.addVertex(xzn, bot, xzm);
+        tess.draw();
     }
 
     public static void preSkyList() {
@@ -2416,9 +2420,9 @@ public class Shaders {
         checkFramebufferStatus("endUpdateChunks2");
     }
 
-    public static boolean shouldRenderClouds(GameOptions gs) {
+    public static boolean shouldRenderClouds(GameSettings gs) {
         checkGLError("shouldRenderClouds");
-        return isShadowPass ? configCloudShadow : gs.renderClouds;
+        return isShadowPass ? configCloudShadow : gs.clouds;
     }
 
     public static void beginClouds() {
@@ -2559,17 +2563,17 @@ public class Shaders {
     }
 
     public static void beginLitParticles() {
-        Tessellator.INSTANCE.normal(0.0F, 0.0F, 0.0F);
+        Tessellator.instance.setNormal(0.0F, 0.0F, 0.0F);
         useProgram(3);
     }
 
     public static void beginParticles() {
-        Tessellator.INSTANCE.normal(0.0F, 0.0F, 0.0F);
+        Tessellator.instance.setNormal(0.0F, 0.0F, 0.0F);
         useProgram(2);
     }
 
     public static void endParticles() {
-        Tessellator.INSTANCE.normal(0.0F, 0.0F, 0.0F);
+        Tessellator.instance.setNormal(0.0F, 0.0F, 0.0F);
         useProgram(3);
     }
 
@@ -2837,14 +2841,14 @@ public class Shaders {
 
     public static void pushEntity(Block block) {
         entityDataIndex++;
-        entityData[entityDataIndex * 2] = block.id & 65535 | block.getBlockType() << 16;
+        entityData[entityDataIndex * 2] = block.blockID & 65535 | block.getRenderType() << 16;
         entityData[entityDataIndex * 2 + 1] = 0;
     }
 
-    public static void pushEntity(BlockRenderer rb, Block block, int x, int y, int z) {
+    public static void pushEntity(RenderBlocks rb, Block block, int x, int y, int z) {
         entityDataIndex++;
-        entityData[entityDataIndex * 2] = block.id & 65535 | block.getBlockType() << 16;
-        entityData[entityDataIndex * 2 + 1] = rb.world.getBlockData(x, y, z);
+        entityData[entityDataIndex * 2] = block.blockID & 65535 | block.getRenderType() << 16;
+        entityData[entityDataIndex * 2 + 1] = rb.blockAccess.getBlockMetadata(x, y, z);
     }
 
     public static void popEntity() {

@@ -1,11 +1,10 @@
 package me.andreasmelone.legacyshadermod.client;
 
-import net.minecraft.client.gui.widget.ListWidget;
-import net.minecraft.client.render.Tessellator;
-
 import java.util.ArrayList;
+import net.minecraft.src.GuiSlot;
+import net.minecraft.src.Tessellator;
 
-class GuiSlotShaders extends ListWidget {
+class GuiSlotShaders extends GuiSlot {
     private ArrayList shaderslist;
     private int scrollBarX;
     final GuiShaders shadersGui;
@@ -21,31 +20,31 @@ class GuiSlotShaders extends ListWidget {
         this.shaderslist = Shaders.listofShaders();
     }
 
-    protected int getEntryCount() {
+    protected int getSize() {
         return this.shaderslist.size();
     }
 
-    protected void method_1057(int par1, boolean par2) {
+    protected void elementClicked(int par1, boolean par2) {
         Shaders.setShaderPack((String) this.shaderslist.get(par1));
         this.shadersGui.needReinit = false;
         Shaders.loadShaderPack();
         Shaders.uninit();
     }
 
-    protected boolean isEntrySelected(int index) {
+    protected boolean isSelected(int index) {
         return ((String) this.shaderslist.get(index)).equals(Shaders.currentshadername);
     }
 
-    protected int getScrollbarPosition() {
+    protected int getScrollBarX() {
         return this.scrollBarX;
     }
 
-    protected int getMaxPosition() {
-        return this.getEntryCount() * 18;
+    protected int getContentHeight() {
+        return this.getSize() * 18;
     }
 
-    protected void renderBackground() {
-        this.shadersGui.renderBackground();
+    protected void drawBackground() {
+        this.shadersGui.drawDefaultBackground();
     }
 
     protected void func_77206_b(int par1, int par2, int par3, int par4) {
@@ -54,7 +53,7 @@ class GuiSlotShaders extends ListWidget {
     protected void drawContainerBackground(Tessellator tess) {
     }
 
-    protected void method_1055(int par1, int par2, int par3, int par4, Tessellator par5Tessellator) {
+    protected void drawSlot(int par1, int par2, int par3, int par4, Tessellator par5Tessellator) {
         this.shadersGui.drawCenteredString((String) this.shaderslist.get(par1), this.scrollBarX / 2, par3 + 1, 16777215);
     }
 }

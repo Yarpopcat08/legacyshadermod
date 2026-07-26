@@ -3,29 +3,29 @@ package me.andreasmelone.legacyshadermod.mixin;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import me.andreasmelone.legacyshadermod.client.Shaders;
-import net.minecraft.client.render.Tessellator;
-import net.minecraft.client.render.WorldRenderer;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.src.Entity;
+import net.minecraft.src.EntityLivingBase;
+import net.minecraft.src.EntityPlayer;
+import net.minecraft.src.MovingObjectPosition;
+import net.minecraft.src.RenderGlobal;
+import net.minecraft.src.Tessellator;
+import net.minecraft.src.Vec3;
+import net.minecraft.src.WorldClient;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(WorldRenderer.class)
+@Mixin(RenderGlobal.class)
 public class WorldRendererMixin {
     // ============== method 1370 start ==================
 
     @Inject(
-            method = "method_1370",
+            method = "renderEntities",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/util/profiler/Profiler;swap(Ljava/lang/String;)V",
+                    target = "Lnet/minecraft/src/Profiler;endStartSection(Ljava/lang/String;)V",
                     shift = At.Shift.AFTER,
                     ordinal = 1
             )
@@ -35,10 +35,10 @@ public class WorldRendererMixin {
     }
 
     @Inject(
-            method = "method_1370",
+            method = "renderEntities",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/util/profiler/Profiler;swap(Ljava/lang/String;)V",
+                    target = "Lnet/minecraft/src/Profiler;endStartSection(Ljava/lang/String;)V",
                     shift = At.Shift.AFTER,
                     ordinal = 2
             )
@@ -49,10 +49,10 @@ public class WorldRendererMixin {
     }
 
     @Inject(
-            method = "method_1370",
+            method = "renderEntities",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/GameRenderer;afterWorldRender(D)V",
+                    target = "Lnet/minecraft/src/EntityRenderer;disableLightmap(D)V",
                     shift = At.Shift.AFTER
             )
     )
@@ -65,50 +65,50 @@ public class WorldRendererMixin {
     // ============== method 1374 start ==================
 
     @Inject(
-            method = "method_1374",
+            method = "sortAndRender",
             at = @At(
                     value = "INVOKE",
                     target = "Lorg/lwjgl/opengl/GL11;glDisable(I)V",
                     ordinal = 1
             )
     )
-    private void inject1374_1(LivingEntity i, int d, double par3, CallbackInfoReturnable<Integer> cir) {
+    private void inject1374_1(EntityLivingBase i, int d, double par3, CallbackInfoReturnable<Integer> cir) {
         Shaders.disableTexture2D();
     }
 
     @Inject(
-            method = "method_1374",
+            method = "sortAndRender",
             at = @At(
                     value = "INVOKE",
                     target = "Lorg/lwjgl/opengl/GL11;glColorMask(ZZZZ)V",
                     ordinal = 0
             )
     )
-    private void inject1374_2(LivingEntity i, int d, double par3, CallbackInfoReturnable<Integer> cir) {
+    private void inject1374_2(EntityLivingBase i, int d, double par3, CallbackInfoReturnable<Integer> cir) {
         Shaders.disableFog();
     }
 
     @Inject(
-            method = "method_1374",
+            method = "sortAndRender",
             at = @At(
                     value = "INVOKE",
                     target = "Lorg/lwjgl/opengl/GL11;glEnable(I)V",
                     ordinal = 1
             )
     )
-    private void inject1374_3(LivingEntity i, int d, double par3, CallbackInfoReturnable<Integer> cir) {
+    private void inject1374_3(EntityLivingBase i, int d, double par3, CallbackInfoReturnable<Integer> cir) {
         Shaders.enableTexture2D();
     }
 
     @Inject(
-            method = "method_1374",
+            method = "sortAndRender",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/util/profiler/Profiler;swap(Ljava/lang/String;)V",
+                    target = "Lnet/minecraft/src/Profiler;endStartSection(Ljava/lang/String;)V",
                     ordinal = 2
             )
     )
-    private void inject1374_4(LivingEntity i, int d, double par3, CallbackInfoReturnable<Integer> cir) {
+    private void inject1374_4(EntityLivingBase i, int d, double par3, CallbackInfoReturnable<Integer> cir) {
         Shaders.enableFog();
     }
 
@@ -144,7 +144,7 @@ public class WorldRendererMixin {
             method = "renderSky",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/world/ClientWorld;method_3631(Lnet/minecraft/entity/Entity;F)Lnet/minecraft/util/math/Vec3d;"
+                    target = "Lnet/minecraft/src/WorldClient;getSkyColor(Lnet/minecraft/src/Entity;F)Lnet/minecraft/src/Vec3;"
             )
     )
     public void onRenderSky3(float par1, CallbackInfo ci) {
@@ -155,11 +155,11 @@ public class WorldRendererMixin {
             method = "renderSky",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/world/ClientWorld;method_3631(Lnet/minecraft/entity/Entity;F)Lnet/minecraft/util/math/Vec3d;"
+                    target = "Lnet/minecraft/src/WorldClient;getSkyColor(Lnet/minecraft/src/Entity;F)Lnet/minecraft/src/Vec3;"
             )
     )
-    public Vec3d onRenderSky4(ClientWorld instance, Entity entity, float v, Operation<Vec3d> original) {
-        Vec3d orig = original.call(instance, entity, v);
+    public Vec3 onRenderSky4(WorldClient instance, Entity entity, float v, Operation<Vec3> original) {
+        Vec3 orig = original.call(instance, entity, v);
         Shaders.setSkyColor(orig);
         return orig;
     }
@@ -254,7 +254,7 @@ public class WorldRendererMixin {
             method = "renderSky",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/world/ClientWorld;method_3707(F)F",
+                    target = "Lnet/minecraft/src/WorldClient;getStarBrightness(F)F",
                     ordinal = 0
             )
     )
@@ -303,19 +303,19 @@ public class WorldRendererMixin {
     // ============== method 1372 start ==================
 
     @Inject(
-            method = "method_1372",
+            method = "drawBlockDamageTexture",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/texture/TextureManager;bindTexture(Lnet/minecraft/util/Identifier;)V",
+                    target = "Lnet/minecraft/src/TextureManager;bindTexture(Lnet/minecraft/src/ResourceLocation;)V",
                     ordinal = 0
             )
     )
-    private void inject1372_1(Tessellator playerEntity, PlayerEntity f, float par3, CallbackInfo ci) {
+    private void inject1372_1(Tessellator playerEntity, EntityPlayer f, float par3, CallbackInfo ci) {
         Shaders.beginBlockDestroyProgress();
     }
 
     @Inject(
-            method = "method_1372",
+            method = "drawBlockDamageTexture",
             at = @At(
                     value = "INVOKE",
                     target = "Lorg/lwjgl/opengl/GL11;glPopMatrix()V",
@@ -323,7 +323,7 @@ public class WorldRendererMixin {
                     shift = At.Shift.AFTER
             )
     )
-    private void inject1372_tail(Tessellator playerEntity, PlayerEntity f, float par3, CallbackInfo ci) {
+    private void inject1372_tail(Tessellator playerEntity, EntityPlayer f, float par3, CallbackInfo ci) {
         Shaders.endBlockDestroyProgress();
     }
 
@@ -332,26 +332,26 @@ public class WorldRendererMixin {
     // ============== method drawBlockOutline start ==================
 
     @Inject(
-            method = "drawBlockOutline",
+            method = "drawSelectionBox",
             at = @At(
                     value = "INVOKE",
                     target = "Lorg/lwjgl/opengl/GL11;glDepthMask(Z)V",
                     ordinal = 0
             )
     )
-    public void onDrawBlockOutline1(PlayerEntity hitResult, BlockHitResult i, int tickDelta, float par4, CallbackInfo ci) {
+    public void onDrawBlockOutline1(EntityPlayer hitResult, MovingObjectPosition i, int tickDelta, float par4, CallbackInfo ci) {
         Shaders.disableTexture2D();
     }
 
     @Inject(
-            method = "drawBlockOutline",
+            method = "drawSelectionBox",
             at = @At(
                     value = "INVOKE",
                     target = "Lorg/lwjgl/opengl/GL11;glDisable(I)V",
                     ordinal = 1
             )
     )
-    public void onDrawBlockOutline2(PlayerEntity hitResult, BlockHitResult i, int tickDelta, float par4, CallbackInfo ci) {
+    public void onDrawBlockOutline2(EntityPlayer hitResult, MovingObjectPosition i, int tickDelta, float par4, CallbackInfo ci) {
         Shaders.enableTexture2D();
     }
 

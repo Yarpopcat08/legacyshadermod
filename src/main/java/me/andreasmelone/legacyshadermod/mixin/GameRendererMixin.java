@@ -9,14 +9,14 @@ import com.llamalad7.mixinextras.sugar.ref.LocalFloatRef;
 import com.llamalad7.mixinextras.sugar.ref.LocalIntRef;
 import me.andreasmelone.legacyshadermod.client.Shaders;
 import me.andreasmelone.legacyshadermod.client.ShadersRender;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.GameOptions;
-import net.minecraft.client.render.CameraView;
-import net.minecraft.client.render.CullingCameraView;
-import net.minecraft.client.render.GameRenderer;
-import net.minecraft.client.render.WorldRenderer;
-import net.minecraft.client.render.item.HeldItemRenderer;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.src.EntityLivingBase;
+import net.minecraft.src.EntityRenderer;
+import net.minecraft.src.Frustrum;
+import net.minecraft.src.GameSettings;
+import net.minecraft.src.ICamera;
+import net.minecraft.src.ItemRenderer;
+import net.minecraft.src.Minecraft;
+import net.minecraft.src.RenderGlobal;
 import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Debug;
 import org.spongepowered.asm.mixin.Mixin;
@@ -28,32 +28,31 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.nio.FloatBuffer;
 
-@Debug(export = true)
-@Mixin(GameRenderer.class)
+@Mixin(EntityRenderer.class)
 public abstract class GameRendererMixin {
     @Shadow
-    private MinecraftClient client;
+    private Minecraft mc;
 
     @Shadow
-    private float viewDistance;
+    private float farPlaneDistance;
 
     @Shadow
-    protected abstract float getFov(float tickDelta, boolean changingFov);
+    protected abstract float getFOVModifier(float tickDelta, boolean changingFov);
 
     @Shadow
-    protected abstract void bobViewWhenHurt(float tickDelta);
+    protected abstract void hurtCameraEffect(float tickDelta);
 
     @Shadow
-    protected abstract void bobView(float tickDelta);
+    protected abstract void setupViewBobbing(float tickDelta);
 
     @Shadow
-    public HeldItemRenderer firstPersonRenderer;
+    public ItemRenderer itemRenderer;
 
     @Shadow
-    public abstract void afterWorldRender(double tickDelta);
+    public abstract void disableLightmap(double tickDelta);
 
     @Shadow
-    public abstract void beforeWorldRender(double tickDelta);
+    public abstract void enableLightmap(double tickDelta);
 
     @Shadow
     protected abstract void renderHand(float tickDelta, int anaglyphOffset);
@@ -71,9 +70,9 @@ public abstract class GameRendererMixin {
             at = @At(value = "INVOKE", target = "Lorg/lwjgl/util/glu/Project;gluPerspective(FFFF)V")
     )
     private void wrapGluPerspective(float fovy, float aspect, float zNear, float zFar, Operation<Void> original, @Share("tickdelta") LocalFloatRef tickDeltaRef) {
-        float var10000 = this.getFov(tickDeltaRef.get(), false);
-        float var10001 = (float) this.client.width / this.client.height;
-        float var10003 = this.viewDistance * 2.0F;
+        float var10000 = this.getFOVModifier(tickDeltaRef.get(), false);
+        float var10001 = (float) this.mc.displayWidth / this.mc.displayHeight;
+        float var10003 = this.farPlaneDistance * 2.0F;
         Shaders.applyHandDepth();
         original.call(var10000, var10001, 0.05F, var10003);
     }
@@ -88,34 +87,34 @@ public abstract class GameRendererMixin {
     )
     private void renderHand1(float anaglyphOffset, int par2, CallbackInfo ci) {
         if (!Shaders.isCompositeRendered) {
-            this.bobViewWhenHurt(anaglyphOffset);
-            if (this.client.options.bobView) {
-                this.bobView(anaglyphOffset);
+            this.hurtCameraEffect(anaglyphOffset);
+            if (this.mc.gameSettings.viewBobbing) {
+                this.setupViewBobbing(anaglyphOffset);
             }
 
-            if (this.client.options.perspective == 0
-                    && !this.client.field_6279.isSleeping()
-                    && !this.client.options.hudHidden
-                    && !this.client.interactionManager.isSpectator()) {
-                this.beforeWorldRender(anaglyphOffset);
-                this.firstPersonRenderer.renderArmHoldingItem(anaglyphOffset);
-                this.afterWorldRender(anaglyphOffset);
+            if (this.mc.gameSettings.thirdPersonView == 0
+                    && !this.mc.renderViewEntity.isPlayerSleeping()
+                    && !this.mc.gameSettings.hideGUI
+                    && !this.mc.playerController.enableEverythingIsScrewedUpMode()) {
+                this.enableLightmap(anaglyphOffset);
+                this.itemRenderer.renderItemInFirstPerson(anaglyphOffset);
+                this.disableLightmap(anaglyphOffset);
             }
         } else {
-            if (this.client.options.perspective == 0 && !this.client.field_6279.isSleeping()) {
-                this.firstPersonRenderer.renderOverlays(anaglyphOffset);
-                this.bobViewWhenHurt(anaglyphOffset);
+            if (this.mc.gameSettings.thirdPersonView == 0 && !this.mc.renderViewEntity.isPlayerSleeping()) {
+                this.itemRenderer.renderOverlays(anaglyphOffset);
+                this.hurtCameraEffect(anaglyphOffset);
             }
 
-            if (this.client.options.bobView) {
-                this.bobView(anaglyphOffset);
+            if (this.mc.gameSettings.viewBobbing) {
+                this.setupViewBobbing(anaglyphOffset);
             }
         }
         ci.cancel();
     }
 
     @Inject(
-            method = "afterWorldRender",
+            method = "disableLightmap",
             at = @At("RETURN")
     )
     public void afterWorldRenderReturn(double par1, CallbackInfo ci) {
@@ -123,7 +122,7 @@ public abstract class GameRendererMixin {
     }
 
     @Inject(
-            method = "beforeWorldRender",
+            method = "enableLightmap",
             at = @At("RETURN")
     )
     public void beforeWorldRenderReturn(double par1, CallbackInfo ci) {
@@ -135,7 +134,7 @@ public abstract class GameRendererMixin {
             at = @At("HEAD")
     )
     public void renderWorldHead(float tickDelta, long limitTime, CallbackInfo ci) {
-        Shaders.beginRender(this.client, tickDelta, limitTime);
+        Shaders.beginRender(this.mc, tickDelta, limitTime);
     }
 
     @WrapOperation(
@@ -153,7 +152,7 @@ public abstract class GameRendererMixin {
             method = "renderWorld",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/Camera;update(Lnet/minecraft/entity/player/PlayerEntity;Z)V",
+                    target = "Lnet/minecraft/src/ActiveRenderInfo;updateRenderInfo(Lnet/minecraft/src/EntityPlayer;Z)V",
                     ordinal = 0
             )
     )
@@ -165,7 +164,7 @@ public abstract class GameRendererMixin {
             method = "renderWorld",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/Camera;update(Lnet/minecraft/entity/player/PlayerEntity;Z)V",
+                    target = "Lnet/minecraft/src/ActiveRenderInfo;updateRenderInfo(Lnet/minecraft/src/EntityPlayer;Z)V",
                     ordinal = 0
             )
     )
@@ -177,7 +176,7 @@ public abstract class GameRendererMixin {
             method = "renderWorld",
             at = @At(
                     value = "FIELD",
-                    target = "Lnet/minecraft/client/option/GameOptions;renderDistance:I",
+                    target = "Lnet/minecraft/src/GameSettings;renderDistance:I",
                     opcode = Opcodes.GETFIELD
             )
     )
@@ -189,7 +188,7 @@ public abstract class GameRendererMixin {
             method = "renderWorld",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/WorldRenderer;renderSky(F)V"
+                    target = "Lnet/minecraft/src/RenderGlobal;renderSky(F)V"
             )
     )
     public void renderWorld2(float limitTime, long par2, CallbackInfo ci) {
@@ -200,14 +199,14 @@ public abstract class GameRendererMixin {
             method = "renderWorld",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/WorldRenderer;renderSky(F)V",
+                    target = "Lnet/minecraft/src/RenderGlobal;renderSky(F)V",
                     shift = At.Shift.AFTER
             )
     )
     public void renderWorld3(float limitTime, long par2, CallbackInfo ci) {
         Shaders.endSky();
     }
-//
+
 //   @WrapOperation(
 //           method = "renderWorld",
 //           at = @At(
@@ -224,11 +223,11 @@ public abstract class GameRendererMixin {
             method = "renderWorld",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/WorldRenderer;method_1373(Lnet/minecraft/client/render/CameraView;F)V"
+                    target = "Lnet/minecraft/src/RenderGlobal;clipRenderersByFrustum(Lnet/minecraft/src/ICamera;F)V"
             )
     )
-    public void renderWorld5(WorldRenderer instance, CameraView f, float v, Operation<Void> original, @Local(name = "var13") int var13, @Share("var13Ref") LocalIntRef var13Ref) {
-        ShadersRender.clipRenderersByFrustrum(instance, (CullingCameraView) f, v);
+    public void renderWorld5(RenderGlobal instance, ICamera f, float v, Operation<Void> original, @Local(name = "var13") int var13, @Share("var13Ref") LocalIntRef var13Ref) {
+        ShadersRender.clipRenderersByFrustrum(instance, (Frustrum) f, v);
         var13Ref.set(var13);
     }
 
@@ -236,7 +235,7 @@ public abstract class GameRendererMixin {
             method = "renderWorld",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/util/profiler/Profiler;swap(Ljava/lang/String;)V",
+                    target = "Lnet/minecraft/src/Profiler;endStartSection(Ljava/lang/String;)V",
                     ordinal = 7
             )
     )
@@ -250,7 +249,7 @@ public abstract class GameRendererMixin {
                     value = "FIELD",
                     opcode = Opcodes.GETFIELD,
                     ordinal = 1,
-                    target = "Lnet/minecraft/entity/LivingEntity;y:D"
+                    target = "Lnet/minecraft/src/EntityLivingBase;posY:D"
             )
     )
     public void renderWorld8(float limitTime, long par2, CallbackInfo ci, @Share("var13Ref") LocalIntRef var13Ref) {
@@ -261,13 +260,13 @@ public abstract class GameRendererMixin {
             method = "renderWorld",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/WorldRenderer;method_1374(Lnet/minecraft/entity/LivingEntity;ID)I",
+                    target = "Lnet/minecraft/src/RenderGlobal;sortAndRender(Lnet/minecraft/src/EntityLivingBase;ID)I",
                     ordinal = 0
             )
     )
-    public int renderWorld9(WorldRenderer instance, LivingEntity i, int d, double v, Operation<Integer> original) {
+    public int renderWorld9(RenderGlobal instance, EntityLivingBase i, int d, double v, Operation<Integer> original) {
         Shaders.beginTerrain();
-        int ret = instance.method_1374(i, d, v);
+        int ret = instance.sortAndRender(i, d, v);
         Shaders.endTerrain();
         return ret;
     }
@@ -276,7 +275,7 @@ public abstract class GameRendererMixin {
             method = "renderWorld",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/particle/ParticleManager;method_1299(Lnet/minecraft/entity/Entity;F)V",
+                    target = "Lnet/minecraft/src/EffectRenderer;renderLitParticles(Lnet/minecraft/src/Entity;F)V",
                     ordinal = 0
             )
     )
@@ -288,7 +287,7 @@ public abstract class GameRendererMixin {
             method = "renderWorld",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/particle/ParticleManager;renderParticles(Lnet/minecraft/entity/Entity;F)V",
+                    target = "Lnet/minecraft/src/EffectRenderer;renderParticles(Lnet/minecraft/src/Entity;F)V",
                     ordinal = 0
             )
     )
@@ -300,7 +299,7 @@ public abstract class GameRendererMixin {
             method = "renderWorld",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/particle/ParticleManager;renderParticles(Lnet/minecraft/entity/Entity;F)V",
+                    target = "Lnet/minecraft/src/EffectRenderer;renderParticles(Lnet/minecraft/src/Entity;F)V",
                     ordinal = 0,
                     shift = At.Shift.AFTER
             )
@@ -313,7 +312,7 @@ public abstract class GameRendererMixin {
             method = "renderWorld",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/GameRenderer;renderFog(IF)V",
+                    target = "Lnet/minecraft/src/EntityRenderer;setupFog(IF)V",
                     ordinal = 4
             )
     )
@@ -328,19 +327,7 @@ public abstract class GameRendererMixin {
             method = "renderWorld",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/WorldRenderer;method_1374(Lnet/minecraft/entity/LivingEntity;ID)I",
-                    ordinal = 1
-            )
-    )
-    public void renderWorld14(float limitTime, long par2, CallbackInfo ci) {
-        Shaders.beginWaterFancy();
-    }
-
-    @Inject(
-            method = "renderWorld",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/WorldRenderer;method_1366(ID)V",
+                    target = "Lnet/minecraft/src/RenderGlobal;renderAllRenderLists(ID)V",
                     ordinal = 0
             )
     )
@@ -357,31 +344,6 @@ public abstract class GameRendererMixin {
             )
     )
     public void renderWorld16(float limitTime, long par2, CallbackInfo ci) {
-        Shaders.endWater();
-    }
-
-    @Inject(
-            method = "renderWorld",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/WorldRenderer;method_1374(Lnet/minecraft/entity/LivingEntity;ID)I",
-                    ordinal = 2
-            )
-    )
-    public void renderWorld17(float limitTime, long par2, CallbackInfo ci) {
-        Shaders.beginWater();
-    }
-
-    @Inject(
-            method = "renderWorld",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/WorldRenderer;method_1374(Lnet/minecraft/entity/LivingEntity;ID)I",
-                    ordinal = 2,
-                    shift = At.Shift.AFTER
-            )
-    )
-    public void renderWorld18(float limitTime, long par2, CallbackInfo ci) {
         Shaders.endWater();
     }
 
@@ -408,7 +370,7 @@ public abstract class GameRendererMixin {
             method = "renderWorld",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/GameRenderer;renderWeather(F)V",
+                    target = "Lnet/minecraft/src/EntityRenderer;renderRainSnow(F)V",
                     ordinal = 0
             )
     )
@@ -420,7 +382,7 @@ public abstract class GameRendererMixin {
             method = "renderWorld",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/GameRenderer;renderWeather(F)V",
+                    target = "Lnet/minecraft/src/EntityRenderer;renderRainSnow(F)V",
                     ordinal = 0,
                     shift = At.Shift.AFTER
             )
@@ -446,7 +408,7 @@ public abstract class GameRendererMixin {
             method = "renderWorld",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/util/profiler/Profiler;swap(Ljava/lang/String;)V",
+                    target = "Lnet/minecraft/src/Profiler;endStartSection(Ljava/lang/String;)V",
                     ordinal = 19,
                     shift = At.Shift.AFTER
             )
@@ -459,7 +421,7 @@ public abstract class GameRendererMixin {
             method = "renderWorld",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/GameRenderer;renderHand(FI)V",
+                    target = "Lnet/minecraft/src/EntityRenderer;renderHand(FI)V",
                     ordinal = 0
             )
     )
@@ -471,7 +433,7 @@ public abstract class GameRendererMixin {
             method = "renderWorld",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/GameRenderer;renderHand(FI)V",
+                    target = "Lnet/minecraft/src/EntityRenderer;renderHand(FI)V",
                     ordinal = 0,
                     shift = At.Shift.AFTER
             )
@@ -484,7 +446,7 @@ public abstract class GameRendererMixin {
             method = "renderWorld",
             at = @At(
                     value = "FIELD",
-                    target = "Lnet/minecraft/client/option/GameOptions;anaglyph3d:Z",
+                    target = "Lnet/minecraft/src/GameSettings;anaglyph:Z",
                     opcode = Opcodes.GETFIELD,
                     ordinal = 2
             )
@@ -495,41 +457,41 @@ public abstract class GameRendererMixin {
     }
 
     @WrapOperation(
-            method = "method_4300",
+            method = "renderCloudsCheck",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/option/GameOptions;method_876()Z"
+                    target = "Lnet/minecraft/src/GameSettings;shouldRenderClouds()Z"
             )
     )
-    public boolean wrapMethod4300(GameOptions instance, Operation<Boolean> original) {
+    public boolean wrapMethod4300(GameSettings instance, Operation<Boolean> original) {
         return Shaders.shouldRenderClouds(instance);
     }
 
     @Inject(
-            method = "method_4300",
+            method = "renderCloudsCheck",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/WorldRenderer;method_1377(F)V"
+                    target = "Lnet/minecraft/src/RenderGlobal;renderClouds(F)V"
             )
     )
-    public void inject4300_1(WorldRenderer f, float par2, CallbackInfo ci) {
+    public void inject4300_1(RenderGlobal f, float par2, CallbackInfo ci) {
         Shaders.beginClouds();
     }
 
     @Inject(
-            method = "method_4300",
+            method = "renderCloudsCheck",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/WorldRenderer;method_1377(F)V",
+                    target = "Lnet/minecraft/src/RenderGlobal;renderClouds(F)V",
                     shift = At.Shift.AFTER
             )
     )
-    public void inject4300_2(WorldRenderer f, float par2, CallbackInfo ci) {
+    public void inject4300_2(RenderGlobal f, float par2, CallbackInfo ci) {
         Shaders.endClouds();
     }
 
     @WrapOperation(
-            method = "renderFog",
+            method = "setupFog",
             at = @At(
                     value = "INVOKE",
                     target = "Lorg/lwjgl/opengl/GL11;glFogi(II)V"
@@ -543,7 +505,7 @@ public abstract class GameRendererMixin {
     }
 
     @Inject(
-            method = "updateFogColorBuffer",
+            method = "setFogColorBuffer",
             at = @At("HEAD")
     )
     private void updateFogColorBufferHead(float red, float green, float blue, float alpha, CallbackInfoReturnable<FloatBuffer> cir) {

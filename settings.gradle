@@ -1,14 +1,28 @@
 pluginManagement {
-    repositories {
-        maven {
-            name = "Fabric"
-            url = "https://maven.fabricmc.net/"
-        }
-        maven {
-            name = "legacy-fabric"
-            url = "https://maven.legacyfabric.net/"
-        }
-        mavenCentral()
-        gradlePluginPortal()
-    }
+	repositories {
+		maven {
+			url 'https://BTW-Community.github.io/BTW-gradle'
+		}
+		maven {
+			name = 'Fabric'
+			url = 'https://maven.fabricmc.net/'
+		}
+		maven {
+			name = "legacy-fabric"
+			url = "https://maven.legacyfabric.net/"
+		}
+		maven {
+			name = 'Jitpack'
+			url = 'https://jitpack.io'
+		}
+		mavenCentral()
+		gradlePluginPortal()
+	}
+}
+rootProject.name = name
+
+gradle.rootProject {
+	group = group
+	version = version
+	description = description
 }
