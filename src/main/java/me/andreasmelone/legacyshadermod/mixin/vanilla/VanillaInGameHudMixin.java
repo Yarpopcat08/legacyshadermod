@@ -12,6 +12,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.lwjgl.opengl.GL11;
 
 @Mixin(GuiIngame.class)
 public abstract class VanillaInGameHudMixin extends Gui {
@@ -57,7 +58,7 @@ public abstract class VanillaInGameHudMixin extends Gui {
                     ordinal = 1
             )
     )
-    public void renderGpuName(float inScreen, boolean mouseX, int mouseY, int par4, CallbackInfo ci, @Share("windowwidth") LocalIntRef windowWidth) {
+    public void renderGpuData(float inScreen, boolean mouseX, int mouseY, int par4, CallbackInfo ci, @Share("windowwidth") LocalIntRef windowWidth) {
         if(Shaders.getShaderPack() != null) {
             FontRenderer font = this.mc.fontRenderer;
             String text = "GPU: " + GL11.glGetString(GL11.GL_RENDERER);
