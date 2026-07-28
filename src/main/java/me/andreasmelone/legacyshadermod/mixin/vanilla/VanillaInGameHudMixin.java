@@ -38,7 +38,7 @@ public abstract class VanillaInGameHudMixin extends Gui {
                     ordinal = 1
             )
     )
-    public void renderShaderName(float inScreen, boolean mouseX, int mouseY, int par4, CallbackInfo ci, @Share("windowwidth") LocalIntRef windowWidth) {
+    public void renderDebugStrings(float inScreen, boolean mouseX, int mouseY, int par4, CallbackInfo ci, @Share("windowwidth") LocalIntRef windowWidth) {
         if(Shaders.getShaderPack() != null) {
             FontRenderer font = this.mc.fontRenderer;
             String text = "Shaderpack: " + Shaders.getShaderPack();
@@ -48,32 +48,19 @@ public abstract class VanillaInGameHudMixin extends Gui {
                     0xFFFFFFFF
             );
         }
-    }
+        FontRenderer font = this.mc.fontRenderer;
+        String text = "GPU: " + GL11.glGetString(GL11.GL_RENDERER);
+        this.drawString(
+                font, text,
+                windowWidth.get() - font.getStringWidth(text) - 2, 32,
+                0xFFFFFFFF
+        );
+        String data = GL11.glGetString(GL11.GL_VERSION) + " " + GL11.glGetString(GL11.GL_VENDOR);
+        this.drawString(
+                font, data,
 
-    @Inject(
-            method = "renderGameOverlay",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/class_371;method_993(Lnet/minecraft/class_370;Ljava/lang/String;III)V",
-                    ordinal = 1
-            )
-    )
-    public void renderGpuData(float inScreen, boolean mouseX, int mouseY, int par4, CallbackInfo ci, @Share("windowwidth") LocalIntRef windowWidth) {
-        if(Shaders.getShaderPack() != null) {
-            FontRenderer font = this.mc.fontRenderer;
-            String text = "GPU: " + GL11.glGetString(GL11.GL_RENDERER);
-            this.drawString(
-                    font, text,
-                    windowWidth.get() - font.getStringWidth(text) - 2, 32,
-                    0xFFFFFFFF
-            );
-            String data = GL11.glGetString(GL11.GL_VERSION) + " " + GL11.glGetString(GL11.GL_VENDOR);
-            this.drawString(
-                    font, data,
-
-                    windowWidth.get() - font.getStringWidth(data) - 2, 42,
-                    0xFFFFFFFF
-            );
-        }
+                windowWidth.get() - font.getStringWidth(data) - 2, 42,
+                0xFFFFFFFF
+        );
     }
 }
